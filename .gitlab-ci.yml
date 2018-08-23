@@ -6,6 +6,8 @@ variables:
 before_script:
   - go version
   - ./ci/before_script.sh
+  - mkdir -p $GOPATH/src/$REPO_NAME
+  - mv $CI_PROJECT_DIR/* $GOPATH/src/$REPO_NAME/
   - cd $GOPATH/src/$REPO_NAME
 
 stages:
@@ -17,9 +19,6 @@ test:unittests:elastic-2.4:
   stage: test
   services:
    - elasticsearch:2.4
-  before_script:
-    - ./ci/before_script.sh
-    - cd $GOPATH/src/$REPO_NAME
   script:
     - make test
 
@@ -27,9 +26,6 @@ test:unittests:elastic-5:
   stage: test
   services:
     - elasticsearch:5
-  before_script:
-    - ./ci/before_script.sh
-    - cd $GOPATH/src/$REPO_NAME
   script:
     - make test
 
@@ -37,9 +33,6 @@ test:unittests:elastic-6.0:
   stage: test
   services:
     - elastic/elasticsearch:6.0.1
-  before_script:
-    - ./ci/before_script.sh
-    - cd $GOPATH/src/$REPO_NAME
   script:
     - make test
 
@@ -47,9 +40,6 @@ test:unittests:elastic-6.3:
   stage: test
   services:
     - elastic/elasticsearch:6.3.2
-  before_script:
-    - ./ci/before_script.sh
-    - cd $GOPATH/src/$REPO_NAME
   script:
     - make test
 
@@ -57,15 +47,12 @@ test:junit:
   stage: test
   services:
     - elastic/elasticsearch:6.3.2
-  before_script:
-    - ./ci/before_script.sh
-    - cd $GOPATH/src/$REPO_NAME
   script:
     - make junit
+    - find $GOPATH
   artifacts:
     reports:
       junit: $GOPATH/src/$REPO_NAME/report.xml
-
 
 test:lint:
   stage: test
@@ -77,8 +64,6 @@ doc:coverage:
   services:
     - elastic/elasticsearch:6.3.2
   script:
-    - ./ci/before_script.sh
-    - cd $GOPATH/src/$REPO_NAME
     - ./ci/coverage.sh
   artifacts:
     when: on_success
