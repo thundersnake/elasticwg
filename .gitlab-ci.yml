@@ -16,55 +16,55 @@ stages:
 test:unittests:elastic-2.4:
   stage: test
   services:
-  - elasticsearch:2.4
+   - elasticsearch:2.4
   before_script:
-  - apt-get update -qyy > /dev/null
-  - apt-get install -qyy postgresql-client > /dev/null
-  - ./ci/before_script.sh
-  - cd $GOPATH/src/$REPO_NAME
+    - apt-get update -qyy > /dev/null
+    - apt-get install -qyy postgresql-client > /dev/null
+    - ./ci/before_script.sh
+    - cd $GOPATH/src/$REPO_NAME
   script:
-  - make test
+    - make test
 
 test:unittests:elastic-5:
   stage: test
   services:
-  - elasticsearch:5
+    - elasticsearch:5
   before_script:
-  - apt-get update -qyy > /dev/null
-  - apt-get install -qyy postgresql-client > /dev/null
-  - ./ci/before_script.sh
-  - cd $GOPATH/src/$REPO_NAME
+    - apt-get update -qyy > /dev/null
+    - apt-get install -qyy postgresql-client > /dev/null
+    - ./ci/before_script.sh
+    - cd $GOPATH/src/$REPO_NAME
   script:
-  - make test
+    - make test
 
 test:unittests:elastic-6.0:
   stage: test
   services:
-  - elastic/elasticsearch:6.0.1
+    - elastic/elasticsearch:6.0.1
   before_script:
-  - apt-get update -qyy > /dev/null
-  - apt-get install -qyy postgresql-client > /dev/null
-  - ./ci/before_script.sh
-  - cd $GOPATH/src/$REPO_NAME
+    - apt-get update -qyy > /dev/null
+    - apt-get install -qyy postgresql-client > /dev/null
+    - ./ci/before_script.sh
+    - cd $GOPATH/src/$REPO_NAME
   script:
-  - make test
+    - make test
 
 test:unittests:elastic-6.3:
   stage: test
   services:
-  - elastic/elasticsearch:6.3.2
+    - elastic/elasticsearch:6.3.2
   before_script:
-  - apt-get update -qyy > /dev/null
-  - apt-get install -qyy postgresql-client > /dev/null
-  - ./ci/before_script.sh
-  - cd $GOPATH/src/$REPO_NAME
+    - apt-get update -qyy > /dev/null
+    - apt-get install -qyy postgresql-client > /dev/null
+    - ./ci/before_script.sh
+    - cd $GOPATH/src/$REPO_NAME
   script:
-  - make test
+    - make test
 
 test:lint:
   stage: test
   script:
-  - make lint
+   - make lint
 
 doc:coverage:
   stage: documentation
@@ -84,15 +84,14 @@ doc:coverage:
 pages:
   stage: deploy
   only:
-  - master
+    - master
   dependencies:
-  - doc:swagger
-  - doc:coverage
+    - doc:coverage
   script:
-  - mkdir -p $CI_PROJECT_DIR/public/
-  - cp artifacts/coverage.html $CI_PROJECT_DIR/public/
+    - mkdir -p $CI_PROJECT_DIR/public/
+    - cp artifacts/coverage.html $CI_PROJECT_DIR/public/
   artifacts:
     when: on_success
     expire_in: 10 year
     paths:
-    - public
+     - public
