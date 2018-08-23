@@ -17,7 +17,7 @@ type Workgroup struct {
 	p                 *Producer
 	logger            Logger
 	FailureOnDupIndex bool
-	IndexMapping      map[string]interface{}
+	indexMapping      map[string]interface{}
 	onStartupCallback func() bool
 	onFailureCallback func()
 	onFinishCallback  func()
@@ -92,6 +92,11 @@ func (w *Workgroup) SetOnPushCallback(cb func(int)) {
 	w.onPushCallback = cb
 }
 
+// SetIndexMapping define index mapping to apply just after index creation
+func (w *Workgroup) SetIndexMapping(mapping map[string]interface{}) {
+	w.indexMapping = mapping
+}
+
 // Run make the workgroup run
 func (w *Workgroup) Run() bool {
 	if w.onStartupCallback != nil {
@@ -130,8 +135,8 @@ func (w *Workgroup) Run() bool {
 		return false
 	}
 
-	if w.IndexMapping != nil {
-		if _, err := client.PutMapping().Index(w.index).Type(w.docType).BodyJson(w.IndexMapping).
+	if w.indexMapping != nil {
+		if _, err := client.PutMapping().Index(w.index).Type(w.docType).BodyJson(w.indexMapping).
 			Do(context.Background()); err != nil {
 			w.logger.Errorf("Unable to put elasticsearch index mapping on '%s': %v", w.index, err)
 			if w.onFailureCallback != nil {
