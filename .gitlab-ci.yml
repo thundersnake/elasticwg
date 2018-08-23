@@ -5,9 +5,10 @@ variables:
 
 before_script:
   - go version
-  -  mkdir -p $GOPATH/src/$REPO_NAME
+  - mkdir -p $GOPATH/src/$REPO_NAME
   - mv $CI_PROJECT_DIR/* $GOPATH/src/$REPO_NAME/
   - cd $GOPATH/src/$REPO_NAME
+  - make dep
 
 stages:
   - test
@@ -47,10 +48,11 @@ test:junit:
   services:
     - elastic/elasticsearch:6.3.2
   script:
-    - make junit
+    - mkdir -p ${CI_PROJECT_DIR}/artifacts
+    - make junit > ${CI_PROJECT_DIR}/artifacts/junit-report.xml
   artifacts:
     reports:
-      junit: /go/src/${REPO_NAME}/junit-report.xml
+      junit: artifacts/junit-report.xml
 
 test:lint:
   stage: test
