@@ -69,7 +69,7 @@ test:lint:
 doc:coverage:
   stage: documentation
   services:
-    - elasticsearch:6
+    - elastic/elasticsearch:6.3.2
   script:
     - apt-get update -qyy > /dev/null
     - ./ci/before_script.sh
