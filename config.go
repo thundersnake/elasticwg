@@ -1,4 +1,4 @@
-package elastic_wg
+package elasticwg
 
 // The elasticsearch index configuration object
 type IndexConfig struct {

@@ -1,4 +1,4 @@
-package elastic_wg
+package elasticwg
 
 import (
 	"context"

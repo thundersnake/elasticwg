@@ -1,4 +1,4 @@
-package elastic_wg
+package elasticwg
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// Workgroup the main object intended to be used to process data
 type Workgroup struct {
 	consumerNumber    int
 	elasticURL        string

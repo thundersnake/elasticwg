@@ -1,11 +1,13 @@
-package elastic_wg
+package elasticwg
 
 import "sync"
 
+// ProducerInterface a generic interface which provides documents to be pushed to the consumers
 type ProducerInterface interface {
 	Produce(*Producer)
 }
 
+// Producer ows the ProducerInterface and publish to the consumer channel
 type Producer struct {
 	c                            chan *Document
 	wg                           *sync.WaitGroup
@@ -20,6 +22,7 @@ func (p *Producer) setChannelAndWaitGroup(ch chan *Document, w *sync.WaitGroup) 
 	p.wg = w
 }
 
+// Push push Elasticsearch document to the consuming channel & run the onProduceCallback if provided
 func (p *Producer) Push(doc *Document) {
 	p.c <- doc
 	p.counter++
