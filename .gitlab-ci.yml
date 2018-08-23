@@ -1,0 +1,69 @@
+image: golang:1.10.3
+
+variables:
+  REPO_NAME: gitlab.com/thundersnake/elastic-wg
+
+before_script:
+  - go version
+  - ./ci/before_script.sh
+  - cd $GOPATH/src/$REPO_NAME
+
+stages:
+  - test
+  - documentation
+
+test:unittests:elastic-2.4:
+  stage: test
+  services:
+  - elasticsearch:2.4
+  before_script:
+  - apt-get update -qyy > /dev/null
+  - apt-get install -qyy postgresql-client > /dev/null
+  - ./ci/before_script.sh
+  - cd $GOPATH/src/$REPO_NAME
+  script:
+  - make test
+
+test:unittests:elastic-5:
+  stage: test
+  services:
+  - elasticsearch:5
+  before_script:
+  - apt-get update -qyy > /dev/null
+  - apt-get install -qyy postgresql-client > /dev/null
+  - ./ci/before_script.sh
+  - cd $GOPATH/src/$REPO_NAME
+  script:
+  - make test
+
+test:unittests:elastic-6:
+  stage: test
+  services:
+  - elasticsearch:6
+  before_script:
+  - apt-get update -qyy > /dev/null
+  - apt-get install -qyy postgresql-client > /dev/null
+  - ./ci/before_script.sh
+  - cd $GOPATH/src/$REPO_NAME
+  script:
+  - make test
+
+test:lint:
+  stage: test
+  script:
+  - make lint
+
+doc:coverage:
+  stage: documentation
+  services:
+    - elasticsearch:6
+  script:
+    - apt-get update -qyy > /dev/null
+    - ./ci/before_script.sh
+    - cd $GOPATH/src/$REPO_NAME
+    - ./ci/coverage.sh
+  artifacts:
+    when: on_success
+    expire_in: 1 day
+    paths:
+    - artifacts/coverage.html
