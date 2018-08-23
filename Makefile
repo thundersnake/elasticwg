@@ -24,5 +24,4 @@ msan: dep ## Run memory sanitizer
 
 dep:
 	@go get -u github.com/golang/dep/cmd/dep
-	@dep ensure
-	mkdir -p ${CI_PROJECT_DIR}/artifacts/${GOOS}_${GOARCH}/
+	@${GOPATH}/bin/dep ensure
