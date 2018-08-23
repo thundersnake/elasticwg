@@ -14,7 +14,7 @@ func (p *testProducer) Produce(pe *Producer) {
 
 func TestNewWorkgroup(t *testing.T) {
 	assert.Nil(t, NewWorkgroup(
-		"http://172.17.0.2",
+		esURL,
 		"test_index",
 		"doc_type_test",
 		&testProducer{},
@@ -24,7 +24,7 @@ func TestNewWorkgroup(t *testing.T) {
 	)
 
 	assert.Nil(t, NewWorkgroup(
-		"http://172.17.0.2",
+		esURL,
 		"test_index",
 		"doc_type_test",
 		nil,
@@ -34,7 +34,7 @@ func TestNewWorkgroup(t *testing.T) {
 	)
 
 	assert.Nil(t, NewWorkgroup(
-		"http://172.17.0.2",
+		esURL,
 		"test_index",
 		"doc_type_test",
 		&testProducer{},
@@ -44,7 +44,7 @@ func TestNewWorkgroup(t *testing.T) {
 	)
 
 	assert.Nil(t, NewWorkgroup(
-		"http://172.17.0.2",
+		esURL,
 		"test_index",
 		"doc_type_test",
 		&testProducer{},
@@ -54,7 +54,7 @@ func TestNewWorkgroup(t *testing.T) {
 	)
 
 	assert.Nil(t, NewWorkgroup(
-		"http://172.17.0.2",
+		esURL,
 		"test_index",
 		"doc_type_test",
 		&testProducer{},
@@ -64,7 +64,7 @@ func TestNewWorkgroup(t *testing.T) {
 	)
 
 	assert.Nil(t, NewWorkgroup(
-		"http://172.17.0.2",
+		esURL,
 		"test_index",
 		"doc_type_test",
 		&testProducer{},
@@ -74,7 +74,7 @@ func TestNewWorkgroup(t *testing.T) {
 	)
 
 	assert.NotNil(t, NewWorkgroup(
-		"http://172.17.0.2",
+		esURL,
 		"test_index",
 		"doc_type_test",
 		&testProducer{},
@@ -82,4 +82,13 @@ func TestNewWorkgroup(t *testing.T) {
 		500,
 		gTestLogger),
 	)
+}
+
+func TestWorkgroupSetOnProduceCallback(t *testing.T) {
+	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	wg.SetOnProduceCallback(func(uint64) {
+		gTestLogger.Info("test")
+	})
+
+	assert.NotNil(t, w.p.onProduceCallback)
 }
