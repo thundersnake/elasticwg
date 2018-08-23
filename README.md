@@ -5,4 +5,9 @@
 
 Elastic Workgroup is design to provide a high throughput Elasticsearch bulk indexer based on a single producer.
 
-It uses goroutines & channels to add parallel consumption queries & massively improve your indexation workload. 
+It uses goroutines & channels to add parallel consumption queries & massively improve your indexation workload.
+
+## TODO
+
+* put analyzers
+* improve the code coverage
