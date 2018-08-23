@@ -1,5 +1,5 @@
-[![pipeline status](https://gitlab.com/ThunderSnake/elastic-wg/badges/develop/pipeline.svg)](https://gitlab.com/ThunderSnake/thundersnake/commits/develop)
-[![coverage report](https://gitlab.com/ThunderSnake/elastic-wg/badges/develop/coverage.svg)](https://gitlab.com/ThunderSnake/thundersnake/commits/develop)
+[![pipeline status](https://gitlab.com/ThunderSnake/elasticwg/badges/develop/pipeline.svg)](https://gitlab.com/ThunderSnake/elasticwg/commits/develop)
+[![coverage report](https://gitlab.com/ThunderSnake/elasticwg/badges/develop/coverage.svg)](https://gitlab.com/ThunderSnake/elasticwg/commits/develop)
 
 # ThunderSnake / Elastic Workgroup
 
