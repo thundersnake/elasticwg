@@ -1,7 +1,7 @@
 image: golang:1.10.3
 
 variables:
-  REPO_NAME: gitlab.com/thundersnake/elastic-wg
+  REPO_NAME: gitlab.com/thundersnake/elasticwg
 
 before_script:
   - go version
