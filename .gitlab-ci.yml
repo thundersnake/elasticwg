@@ -18,8 +18,6 @@ test:unittests:elastic-2.4:
   services:
    - elasticsearch:2.4
   before_script:
-    - apt-get update -qyy > /dev/null
-    - apt-get install -qyy postgresql-client > /dev/null
     - ./ci/before_script.sh
     - cd $GOPATH/src/$REPO_NAME
   script:
@@ -30,8 +28,6 @@ test:unittests:elastic-5:
   services:
     - elasticsearch:5
   before_script:
-    - apt-get update -qyy > /dev/null
-    - apt-get install -qyy postgresql-client > /dev/null
     - ./ci/before_script.sh
     - cd $GOPATH/src/$REPO_NAME
   script:
@@ -42,8 +38,6 @@ test:unittests:elastic-6.0:
   services:
     - elastic/elasticsearch:6.0.1
   before_script:
-    - apt-get update -qyy > /dev/null
-    - apt-get install -qyy postgresql-client > /dev/null
     - ./ci/before_script.sh
     - cd $GOPATH/src/$REPO_NAME
   script:
@@ -54,12 +48,24 @@ test:unittests:elastic-6.3:
   services:
     - elastic/elasticsearch:6.3.2
   before_script:
-    - apt-get update -qyy > /dev/null
-    - apt-get install -qyy postgresql-client > /dev/null
     - ./ci/before_script.sh
     - cd $GOPATH/src/$REPO_NAME
   script:
     - make test
+
+test:junit:
+  stage: test
+  services:
+    - elastic/elasticsearch:6.3.2
+  before_script:
+    - ./ci/before_script.sh
+    - cd $GOPATH/src/$REPO_NAME
+  script:
+    - make junit
+  artifacts:
+    reports:
+      junit: $GOPATH/src/$REPO_NAME/report.xml
+
 
 test:lint:
   stage: test
@@ -71,7 +77,6 @@ doc:coverage:
   services:
     - elastic/elasticsearch:6.3.2
   script:
-    - apt-get update -qyy > /dev/null
     - ./ci/before_script.sh
     - cd $GOPATH/src/$REPO_NAME
     - ./ci/coverage.sh

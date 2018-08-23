@@ -13,6 +13,10 @@ lint: ## test
 test: dep ## Run unittests
 	@go test -short ${PKG_LIST}
 
+junit: dep
+	@go get -u github.com/jstemmer/go-junit-report
+	@go test -v 2>&1 | go-junit-report > report.xml
+
 race: dep ## Run data race detector
 	@go test -race -short ${PKG_LIST}
 
