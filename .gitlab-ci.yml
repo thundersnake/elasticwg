@@ -11,6 +11,7 @@ before_script:
 stages:
   - test
   - documentation
+  - deploy
 
 test:unittests:elastic-2.4:
   stage: test
@@ -79,3 +80,19 @@ doc:coverage:
     expire_in: 1 day
     paths:
     - artifacts/coverage.html
+
+pages:
+  stage: deploy
+  only:
+  - master
+  dependencies:
+  - doc:swagger
+  - doc:coverage
+  script:
+  - mkdir -p $CI_PROJECT_DIR/public/
+  - cp artifacts/coverage.html $CI_PROJECT_DIR/public/
+  artifacts:
+    when: on_success
+    expire_in: 10 year
+    paths:
+    - public
