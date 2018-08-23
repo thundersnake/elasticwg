@@ -131,7 +131,8 @@ func (w *Workgroup) Run() bool {
 	}
 
 	if w.IndexMapping != nil {
-		if _, err := client.PutMapping().Index(w.index).BodyJson(w.IndexMapping).Do(context.Background()); err != nil {
+		if _, err := client.PutMapping().Index(w.index).Type(w.docType).BodyJson(w.IndexMapping).
+			Do(context.Background()); err != nil {
 			w.logger.Errorf("Unable to put elasticsearch index mapping on '%s': %v", w.index, err)
 			if w.onFailureCallback != nil {
 				w.onFailureCallback()
