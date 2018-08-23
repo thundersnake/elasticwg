@@ -90,5 +90,5 @@ func TestWorkgroupSetOnProduceCallback(t *testing.T) {
 		gTestLogger.Info("test")
 	})
 
-	assert.NotNil(t, w.p.onProduceCallback)
+	assert.NotNil(t, wg.p.onProduceCallback)
 }
