@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+// Consumer consumes produces data from the workgroup channel
 type Consumer struct {
 	Index          string
 	DocType        string
@@ -39,6 +40,7 @@ performBulk:
 	return true
 }
 
+// Consume consume documents inside a bulk request and send it to Elasticsearch
 func (c *Consumer) Consume(cDoc chan *Document, wg *sync.WaitGroup) {
 	defer wg.Done()
 	client, err := elastic.NewClient(

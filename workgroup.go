@@ -23,6 +23,7 @@ type Workgroup struct {
 	onPushCallback    func(int)
 }
 
+// NewWorkgroup creates the workgroup and define the initialization parameters
 func NewWorkgroup(esURL string, index string, docType string, pi ProducerInterface, consumerNumber int,
 	bulkSize int, logger Logger) *Workgroup {
 	if logger == nil {
@@ -58,26 +59,34 @@ func NewWorkgroup(esURL string, index string, docType string, pi ProducerInterfa
 	}
 }
 
+// SetOnProduceCallback define the callback to call when a document is produced
+// callback parameter is the current document produced count
 func (w *Workgroup) SetOnProduceCallback(cb func(uint64)) {
 	w.p.onProduceCallback = cb
 }
 
+// SetOnProductionFinishedCallback define the callback to call when production is finished
+// callback parameter is the document produced count
 func (w *Workgroup) SetOnProductionFinishedCallback(cb func(uint64)) {
 	w.p.onProductionFinishedCallback = cb
 }
 
+// SetStartupCallback define the callback to call when workgroup starts
 func (w *Workgroup) SetStartupCallback(cb func() bool) {
 	w.onStartupCallback = cb
 }
 
+// SetFailureCallback define the callback to call when the workgroup has a failure
 func (w *Workgroup) SetFailureCallback(cb func()) {
 	w.onFailureCallback = cb
 }
 
+// SetFinishCallback define the callback to call when the workgroup has successfully finished
 func (w *Workgroup) SetFinishCallback(cb func()) {
 	w.onFinishCallback = cb
 }
 
+// SetOnPushCallback define the callback to call when a bulk request has been pushed to Elasticsearch
 func (w *Workgroup) SetOnPushCallback(cb func(int)) {
 	w.onPushCallback = cb
 }
