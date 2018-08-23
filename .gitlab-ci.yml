@@ -18,35 +18,40 @@ stages:
 test:unittests:elastic-2.4:
   stage: test
   services:
-   - elasticsearch:2.4
+   - name: elasticsearch:2.4
+     alias: elasticsearch
   script:
     - make test
 
 test:unittests:elastic-5:
   stage: test
   services:
-    - elasticsearch:5
+    - name: elasticsearch:5
+      alias: elasticsearch
   script:
     - make test
 
 test:unittests:elastic-6.0:
   stage: test
   services:
-    - elastic/elasticsearch:6.0.1
+    - name: elastic/elasticsearch:6.0.1
+      alias: elasticsearch
   script:
     - make test
 
 test:unittests:elastic-6.3:
   stage: test
   services:
-    - elastic/elasticsearch:6.3.2
+    - name: elastic/elasticsearch:6.3.2
+      alias: elasticsearch
   script:
     - make test
 
 test:junit:
   stage: test
   services:
-    - elastic/elasticsearch:6.3.2
+    - name: elastic/elasticsearch:6.3.2
+      alias: elasticsearch
   script:
     - mkdir -p ${CI_PROJECT_DIR}/artifacts
     - make junit > ${CI_PROJECT_DIR}/artifacts/junit-report.xml
