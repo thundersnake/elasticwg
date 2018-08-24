@@ -2,7 +2,9 @@ package elasticwg
 
 import (
 	"context"
+	"encoding/json"
 	"gopkg.in/olivere/elastic.v5"
+	"io/ioutil"
 	"sync"
 	"time"
 )
@@ -95,6 +97,23 @@ func (w *Workgroup) SetOnPushCallback(cb func(int)) {
 // SetIndexMapping define index mapping to apply just after index creation
 func (w *Workgroup) SetIndexMapping(mapping map[string]interface{}) {
 	w.indexMapping = mapping
+}
+
+// SetIndexMappingFromFile read file at path and load indexMapping to apply
+// just after index creation
+func (w *Workgroup) SetIndexMappingFromFile(path string) bool {
+	bJSON, err := ioutil.ReadFile(path)
+	if err != nil {
+		w.logger.Errorf("Unable to read index mapping from file '%s': %v", path, err)
+		return false
+	}
+
+	if err := json.Unmarshal(bJSON, &w.indexMapping); err != nil {
+		w.logger.Errorf("Unable to unmarshal index mapping from file '%s': %v", path, err)
+		return false
+	}
+
+	return true
 }
 
 // Run make the workgroup run

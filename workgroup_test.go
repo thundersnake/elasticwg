@@ -119,6 +119,24 @@ func TestWorkgroup_SetIndexMapping(t *testing.T) {
 	assert.NotNil(t, wg.indexMapping)
 }
 
+func TestWorkgroup_SetIndexMappingFromFileUnkFile(t *testing.T) {
+	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	assert.False(t, wg.SetIndexMappingFromFile("ci/mapping_test_unkfile.json"))
+	assert.Nil(t, wg.indexMapping)
+}
+
+func TestWorkgroup_SetIndexMappingFromFileBadJSON(t *testing.T) {
+	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	assert.False(t, wg.SetIndexMappingFromFile("ci/mapping_test.badjson"))
+	assert.Nil(t, wg.indexMapping)
+}
+
+func TestWorkgroup_SetIndexMappingFromFile(t *testing.T) {
+	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	assert.True(t, wg.SetIndexMappingFromFile("ci/mapping_test.json"))
+	assert.NotNil(t, wg.indexMapping)
+}
+
 func TestWorkgroup_SetOnProductionFinishedCallback(t *testing.T) {
 	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
 	wg.SetOnProductionFinishedCallback(func(a uint64) {
