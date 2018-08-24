@@ -12,80 +12,85 @@ func (p *testProducer) Produce(pe *Producer) {
 
 }
 
+var testCfg = WorkgroupConfig{
+	IndexName:    "test_index",
+	DocType:      "doc_type_test",
+	NumConsumers: 10,
+	BulkSize:     500,
+}
+
 func TestNewWorkgroup(t *testing.T) {
+	cfg := WorkgroupConfig{
+		IndexName:    "test_index",
+		DocType:      "doc_type_test",
+		NumConsumers: 10,
+		BulkSize:     500,
+	}
+
 	assert.Nil(t, NewWorkgroup(
 		esURL,
-		"test_index",
-		"doc_type_test",
+		cfg,
 		&testProducer{},
-		10,
-		500,
 		nil),
 	)
 
+	cfg.NumConsumers = 1
+	cfg.BulkSize = 5000
 	assert.Nil(t, NewWorkgroup(
 		esURL,
-		"test_index",
-		"doc_type_test",
+		cfg,
 		nil,
-		1,
-		5000,
 		gTestLogger),
 	)
 
+	cfg.NumConsumers = 0
+	cfg.BulkSize = 5000
 	assert.Nil(t, NewWorkgroup(
 		esURL,
-		"test_index",
-		"doc_type_test",
+		cfg,
 		&testProducer{},
-		0,
-		5000,
 		gTestLogger),
 	)
 
+	cfg.NumConsumers = -1
+	cfg.BulkSize = 5000
 	assert.Nil(t, NewWorkgroup(
 		esURL,
-		"test_index",
-		"doc_type_test",
+		cfg,
 		&testProducer{},
-		-10,
-		5000,
 		gTestLogger),
 	)
 
+	cfg.NumConsumers = 10
+	cfg.BulkSize = 0
 	assert.Nil(t, NewWorkgroup(
 		esURL,
-		"test_index",
-		"doc_type_test",
+		cfg,
 		&testProducer{},
-		10,
-		0,
 		gTestLogger),
 	)
 
+	cfg.NumConsumers = 10
+	cfg.BulkSize = -88
 	assert.Nil(t, NewWorkgroup(
 		esURL,
-		"test_index",
-		"doc_type_test",
+		cfg,
 		&testProducer{},
-		10,
-		-88,
 		gTestLogger),
 	)
 
+	cfg.NumConsumers = 10
+	cfg.BulkSize = 500
 	assert.NotNil(t, NewWorkgroup(
 		esURL,
-		"test_index",
-		"doc_type_test",
+		cfg,
 		&testProducer{},
-		10,
-		500,
 		gTestLogger),
 	)
 }
 
 func TestWorkgroup_SetOnProduceCallback(t *testing.T) {
-	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
 	wg.SetOnProduceCallback(func(a uint64) {
 		gTestLogger.Info("test %d", a)
 	})
@@ -94,7 +99,7 @@ func TestWorkgroup_SetOnProduceCallback(t *testing.T) {
 }
 
 func TestWorkgroup_SetFailureCallback(t *testing.T) {
-	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
 	wg.SetFailureCallback(func() {
 		gTestLogger.Info("test")
 	})
@@ -103,7 +108,7 @@ func TestWorkgroup_SetFailureCallback(t *testing.T) {
 }
 
 func TestWorkgroup_SetFinishCallback(t *testing.T) {
-	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
 	wg.SetFinishCallback(func() {
 		gTestLogger.Info("test")
 	})
@@ -112,7 +117,7 @@ func TestWorkgroup_SetFinishCallback(t *testing.T) {
 }
 
 func TestWorkgroup_SetIndexMapping(t *testing.T) {
-	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
 	indexMapping := make(map[string]interface{}, 0)
 	wg.SetIndexMapping(indexMapping)
 
@@ -120,25 +125,25 @@ func TestWorkgroup_SetIndexMapping(t *testing.T) {
 }
 
 func TestWorkgroup_SetIndexMappingFromFileUnkFile(t *testing.T) {
-	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
 	assert.False(t, wg.SetIndexMappingFromFile("ci/mapping_test_unkfile.json"))
 	assert.Nil(t, wg.indexMapping)
 }
 
 func TestWorkgroup_SetIndexMappingFromFileBadJSON(t *testing.T) {
-	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
 	assert.False(t, wg.SetIndexMappingFromFile("ci/mapping_test.badjson"))
 	assert.Nil(t, wg.indexMapping)
 }
 
 func TestWorkgroup_SetIndexMappingFromFile(t *testing.T) {
-	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
 	assert.True(t, wg.SetIndexMappingFromFile("ci/mapping_test.json"))
 	assert.NotNil(t, wg.indexMapping)
 }
 
 func TestWorkgroup_SetOnProductionFinishedCallback(t *testing.T) {
-	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
 	wg.SetOnProductionFinishedCallback(func(a uint64) {
 		gTestLogger.Infof("test: %d", a)
 	})
@@ -147,7 +152,7 @@ func TestWorkgroup_SetOnProductionFinishedCallback(t *testing.T) {
 }
 
 func TestWorkgroup_SetOnPushCallback(t *testing.T) {
-	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
 	wg.SetOnPushCallback(func(a int) {
 		gTestLogger.Infof("test: %d", a)
 	})
@@ -156,7 +161,7 @@ func TestWorkgroup_SetOnPushCallback(t *testing.T) {
 }
 
 func TestWorkgroup_SetStartupCallback(t *testing.T) {
-	wg := NewWorkgroup(esURL, "test_index", "doc_type_test", &testProducer{}, 10, 500, gTestLogger)
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
 	wg.SetStartupCallback(func() bool {
 		gTestLogger.Info("test")
 		return true
