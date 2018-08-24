@@ -1,5 +1,4 @@
-PROJECT_NAME := bot
-REPO_NAME := "gitlab.com/thundersnake/{PROJECT_NAME}"
+REPO_NAME := "gitlab.com/thundersnake/elasticwg"
 PKG_LIST := $(shell go list ${REPO_NAME}/... | grep -v /vendor/)
 
 .PHONY: all dep doc build test
@@ -13,6 +12,10 @@ lint: ## test
 test: dep ## Run unittests
 	@go test -short ${PKG_LIST}
 
+junit: dep
+	@go get -u github.com/jstemmer/go-junit-report
+	go test -v 2>&1 | ${GOPATH}/bin/go-junit-report
+
 race: dep ## Run data race detector
 	@go test -race -short ${PKG_LIST}
 
@@ -21,5 +24,4 @@ msan: dep ## Run memory sanitizer
 
 dep:
 	@go get -u github.com/golang/dep/cmd/dep
-	@dep ensure
-	mkdir -p ${CI_PROJECT_DIR}/artifacts/${GOOS}_${GOARCH}/
+	@${GOPATH}/bin/dep ensure

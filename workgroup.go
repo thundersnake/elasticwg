@@ -2,21 +2,21 @@ package elasticwg
 
 import (
 	"context"
+	"encoding/json"
 	"gopkg.in/olivere/elastic.v5"
+	"io/ioutil"
 	"sync"
 	"time"
 )
 
 // Workgroup the main object intended to be used to process data
 type Workgroup struct {
-	consumerNumber    int
 	elasticURL        string
-	index             string
-	docType           string
-	bulkSize          int
+	cfg               WorkgroupConfig
 	p                 *Producer
 	logger            Logger
 	FailureOnDupIndex bool
+	indexMapping      map[string]interface{}
 	onStartupCallback func() bool
 	onFailureCallback func()
 	onFinishCallback  func()
@@ -24,8 +24,7 @@ type Workgroup struct {
 }
 
 // NewWorkgroup creates the workgroup and define the initialization parameters
-func NewWorkgroup(esURL string, index string, docType string, pi ProducerInterface, consumerNumber int,
-	bulkSize int, logger Logger) *Workgroup {
+func NewWorkgroup(esURL string, wcfg WorkgroupConfig, pi ProducerInterface, logger Logger) *Workgroup {
 	if logger == nil {
 		return nil
 	}
@@ -35,28 +34,31 @@ func NewWorkgroup(esURL string, index string, docType string, pi ProducerInterfa
 		return nil
 	}
 
-	if consumerNumber <= 0 {
+	if wcfg.NumConsumers <= 0 {
 		logger.Error("consumerNumber must be > 0!")
 		return nil
 	}
 
-	if bulkSize <= 0 {
+	if wcfg.BulkSize <= 0 {
 		logger.Error("bulkSize must be > 0!")
 		return nil
 	}
 
-	return &Workgroup{
-		consumerNumber:    consumerNumber,
+	wg := &Workgroup{
+		cfg:               wcfg,
 		elasticURL:        esURL,
-		bulkSize:          bulkSize,
-		index:             index,
-		docType:           docType,
 		logger:            logger,
 		FailureOnDupIndex: true,
 		p: &Producer{
 			pi: pi,
 		},
 	}
+
+	if len(wg.cfg.MappingFile) > 0 && !wg.SetIndexMappingFromFile(wg.cfg.MappingFile) {
+		return nil
+	}
+
+	return wg
 }
 
 // SetOnProduceCallback define the callback to call when a document is produced
@@ -91,6 +93,28 @@ func (w *Workgroup) SetOnPushCallback(cb func(int)) {
 	w.onPushCallback = cb
 }
 
+// SetIndexMapping define index mapping to apply just after index creation
+func (w *Workgroup) SetIndexMapping(mapping map[string]interface{}) {
+	w.indexMapping = mapping
+}
+
+// SetIndexMappingFromFile read file at path and load indexMapping to apply
+// just after index creation
+func (w *Workgroup) SetIndexMappingFromFile(path string) bool {
+	bJSON, err := ioutil.ReadFile(path)
+	if err != nil {
+		w.logger.Errorf("Unable to read index mapping from file '%s': %v", path, err)
+		return false
+	}
+
+	if err := json.Unmarshal(bJSON, &w.indexMapping); err != nil {
+		w.logger.Errorf("Unable to unmarshal index mapping from file '%s': %v", path, err)
+		return false
+	}
+
+	return true
+}
+
 // Run make the workgroup run
 func (w *Workgroup) Run() bool {
 	if w.onStartupCallback != nil {
@@ -121,16 +145,27 @@ func (w *Workgroup) Run() bool {
 	esConfig := IndexConfig{}
 	esConfig.Index.NumberOfReplicas = 0
 	esConfig.Index.RefreshInterval = "-1"
-	if _, err := client.CreateIndex(w.index).Do(context.Background()); err != nil && w.FailureOnDupIndex {
-		w.logger.Errorf("Unable to create elasticsearch index '%s': %v", w.index, err)
+	if _, err := client.CreateIndex(w.cfg.IndexName).Do(context.Background()); err != nil && w.FailureOnDupIndex {
+		w.logger.Errorf("Unable to create elasticsearch index '%s': %v", w.cfg.IndexName, err)
 		if w.onFailureCallback != nil {
 			w.onFailureCallback()
 		}
 		return false
 	}
 
-	if _, err := client.IndexPutSettings(w.index).BodyJson(esConfig).Do(context.Background()); err != nil {
-		w.logger.Errorf("Unable to put elasticsearch index settings on '%s': %v", w.index, err)
+	if w.indexMapping != nil {
+		if _, err := client.PutMapping().Index(w.cfg.IndexName).Type(w.cfg.DocType).BodyJson(w.indexMapping).
+			Do(context.Background()); err != nil {
+			w.logger.Errorf("Unable to put elasticsearch index mapping on '%s': %v", w.cfg.IndexName, err)
+			if w.onFailureCallback != nil {
+				w.onFailureCallback()
+			}
+			return false
+		}
+	}
+
+	if _, err := client.IndexPutSettings(w.cfg.IndexName).BodyJson(esConfig).Do(context.Background()); err != nil {
+		w.logger.Errorf("Unable to put elasticsearch index settings on '%s': %v", w.cfg.IndexName, err)
 		if w.onFailureCallback != nil {
 			w.onFailureCallback()
 		}
@@ -148,13 +183,13 @@ func (w *Workgroup) Run() bool {
 
 	// Create the consuming wait group & start consuming
 	wgConsume := &sync.WaitGroup{}
-	for i := 0; i < w.consumerNumber; i++ {
+	for i := 0; i < w.cfg.NumConsumers; i++ {
 		wgConsume.Add(1)
 		c := Consumer{
-			BulkSize:   w.bulkSize,
+			BulkSize:   w.cfg.BulkSize,
 			ElasticURL: w.elasticURL,
-			DocType:    w.docType,
-			Index:      w.index,
+			DocType:    w.cfg.DocType,
+			Index:      w.cfg.IndexName,
 			logger:     w.logger,
 		}
 
@@ -176,7 +211,7 @@ func (w *Workgroup) Run() bool {
 	// Re-set ES index standard configs
 	esConfig.Index.NumberOfReplicas = 1
 	esConfig.Index.RefreshInterval = "10s"
-	if _, err := client.IndexPutSettings(w.index).BodyJson(esConfig).Do(context.Background()); err != nil {
+	if _, err := client.IndexPutSettings(w.cfg.IndexName).BodyJson(esConfig).Do(context.Background()); err != nil {
 		w.logger.Errorf("Unable to put elasticsearch index settings.")
 		if w.onFailureCallback != nil {
 			w.onFailureCallback()
@@ -190,6 +225,6 @@ func (w *Workgroup) Run() bool {
 
 	tEnd := time.Now()
 	elapsed := tEnd.Sub(tStart)
-	w.logger.Infof("%d documents indexed in %s (bulksize: %d).", n, elapsed.String(), w.bulkSize)
+	w.logger.Infof("%d documents indexed in %s (bulksize: %d).", n, elapsed.String(), w.cfg.BulkSize)
 	return true
 }

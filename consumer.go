@@ -17,14 +17,15 @@ type Consumer struct {
 }
 
 func (c *Consumer) pushBulk(bulkRequest *elastic.BulkService) bool {
+	bulkRequestActions := bulkRequest.NumberOfActions()
 	retryCounter := 0
 performBulk:
 	_, err := bulkRequest.Do(context.Background())
 	if err != nil {
 		c.logger.Warningf("Failed to perform a bulk query: %v", err)
 		retryCounter++
-		// try to push 3 times
-		if retryCounter < 3 {
+		// try to push 5 times
+		if retryCounter < 5 {
 			goto performBulk
 		} else {
 			c.logger.Error("Unable to push bulk query after 5 tentatives, aborting consuming.")
@@ -34,22 +35,28 @@ performBulk:
 
 	// If push callback is defined, call it
 	if c.onPushCallback != nil {
-		c.onPushCallback(c.BulkSize)
+		c.onPushCallback(bulkRequestActions)
 	}
 
 	return true
 }
 
 // Consume consume documents inside a bulk request and send it to Elasticsearch
-func (c *Consumer) Consume(cDoc chan *Document, wg *sync.WaitGroup) {
+func (c *Consumer) Consume(cDoc chan *Document, wg *sync.WaitGroup) bool {
 	defer wg.Done()
+
+	if c.BulkSize < 100 {
+		c.logger.Errorf("Consumer bulk size is too low (%d < 100)", c.BulkSize)
+		return false
+	}
+
 	client, err := elastic.NewClient(
 		elastic.SetSniff(false),
 		elastic.SetURL(c.ElasticURL),
 	)
 	if err != nil {
 		c.logger.Errorf("%v", err)
-		return
+		return false
 	}
 
 	n := 0
@@ -66,7 +73,7 @@ func (c *Consumer) Consume(cDoc chan *Document, wg *sync.WaitGroup) {
 
 		if n%c.BulkSize == 0 {
 			if !c.pushBulk(bulkRequest) {
-				return
+				return false
 			}
 
 			if n%5000 == 0 {
@@ -78,11 +85,12 @@ func (c *Consumer) Consume(cDoc chan *Document, wg *sync.WaitGroup) {
 	// Flush remaining docs
 	if bulkRequest.NumberOfActions() > 0 {
 		if !c.pushBulk(bulkRequest) {
-			return
+			return false
 		}
 
 		c.logger.Infof("Pushed %d docs to elasticsearch", n)
 	}
 
 	c.logger.Infof("Consuming finished. Pushed %d docs to elasticsearch", n)
+	return true
 }
