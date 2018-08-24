@@ -44,6 +44,12 @@ performBulk:
 // Consume consume documents inside a bulk request and send it to Elasticsearch
 func (c *Consumer) Consume(cDoc chan *Document, wg *sync.WaitGroup) bool {
 	defer wg.Done()
+
+	if c.BulkSize < 100 {
+		c.logger.Errorf("Consumer bulk size is too low (%d < 100)", c.BulkSize)
+		return false
+	}
+
 	client, err := elastic.NewClient(
 		elastic.SetSniff(false),
 		elastic.SetURL(c.ElasticURL),
