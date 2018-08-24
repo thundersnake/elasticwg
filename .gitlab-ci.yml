@@ -80,6 +80,7 @@ pages:
   stage: deploy
   only:
     - master
+    - develop
   dependencies:
     - doc:coverage
   script:
