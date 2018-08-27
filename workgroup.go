@@ -44,6 +44,11 @@ func NewWorkgroup(esURL string, wcfg WorkgroupConfig, pi ProducerInterface, logg
 		return nil
 	}
 
+	if wcfg.ChannelBufferSize < 0 {
+		logger.Error("channelBufferSize must be >= 0!")
+		return nil
+	}
+
 	wg := &Workgroup{
 		cfg:               wcfg,
 		elasticURL:        esURL,
@@ -174,7 +179,7 @@ func (w *Workgroup) Run() bool {
 
 	// Create the production wait group
 	wgProduce := &sync.WaitGroup{}
-	cDoc := make(chan *Document)
+	cDoc := make(chan *Document, w.cfg.ChannelBufferSize)
 
 	// Configure & start the producer
 	wgProduce.Add(1)

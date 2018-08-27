@@ -67,7 +67,8 @@ test:lint:
 doc:coverage:
   stage: documentation
   services:
-    - elastic/elasticsearch:6.3.2
+    - name: elastic/elasticsearch:6.3.2
+      alias: elasticsearch
   script:
     - ./ci/coverage.sh
   artifacts:
@@ -80,6 +81,7 @@ pages:
   stage: deploy
   only:
     - master
+    - develop
   dependencies:
     - doc:coverage
   script:
