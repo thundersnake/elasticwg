@@ -81,19 +81,42 @@ func TestNewWorkgroup(t *testing.T) {
 
 	cfg.NumConsumers = 10
 	cfg.BulkSize = 500
+	cfg.ChannelBufferSize = -1
+	assert.Nil(t, NewWorkgroup(
+		esURL,
+		cfg,
+		&testProducer{},
+		gTestLogger),
+	)
+
+	cfg.NumConsumers = 10
+	cfg.BulkSize = 500
+	cfg.ChannelBufferSize = -1001545
+	assert.Nil(t, NewWorkgroup(
+		esURL,
+		cfg,
+		&testProducer{},
+		gTestLogger),
+	)
+
+	cfg.NumConsumers = 10
+	cfg.BulkSize = 500
+	cfg.ChannelBufferSize = 15000
 	assert.NotNil(t, NewWorkgroup(
 		esURL,
 		cfg,
 		&testProducer{},
 		gTestLogger),
 	)
-}
 
-func TestWorkgroup_SetChannelBufferSize(t *testing.T) {
-	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
-	wg.SetChannelBufferSize(77585)
-
-	assert.Equal(t, 77585, wg.channelBufferSize)
+	cfg.NumConsumers = 10
+	cfg.BulkSize = 500
+	assert.NotNil(t, NewWorkgroup(
+		esURL,
+		cfg,
+		&testProducer{},
+		gTestLogger),
+	)
 }
 
 func TestWorkgroup_SetOnProduceCallback(t *testing.T) {
