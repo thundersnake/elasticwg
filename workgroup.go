@@ -120,6 +120,11 @@ func (w *Workgroup) SetIndexMappingFromFile(path string) bool {
 	return true
 }
 
+// GetIndexName returns the configured index name
+func (w *Workgroup) GetIndexName() string {
+	return w.cfg.IndexName
+}
+
 // Run make the workgroup run
 func (w *Workgroup) Run() bool {
 	if w.onStartupCallback != nil {
