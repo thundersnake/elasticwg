@@ -89,6 +89,13 @@ func TestNewWorkgroup(t *testing.T) {
 	)
 }
 
+func TestWorkgroup_SetChannelBufferSize(t *testing.T) {
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
+	wg.SetChannelBufferSize(77585)
+
+	assert.Equal(t, 77585, wg.channelBufferSize)
+}
+
 func TestWorkgroup_SetOnProduceCallback(t *testing.T) {
 	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
 	wg.SetOnProduceCallback(func(a uint64) {

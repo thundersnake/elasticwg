@@ -16,6 +16,7 @@ type Workgroup struct {
 	p                 *Producer
 	logger            Logger
 	FailureOnDupIndex bool
+	channelBufferSize int
 	indexMapping      map[string]interface{}
 	onStartupCallback func() bool
 	onFailureCallback func()
@@ -49,6 +50,7 @@ func NewWorkgroup(esURL string, wcfg WorkgroupConfig, pi ProducerInterface, logg
 		elasticURL:        esURL,
 		logger:            logger,
 		FailureOnDupIndex: true,
+		channelBufferSize: 0,
 		p: &Producer{
 			pi: pi,
 		},
@@ -59,6 +61,12 @@ func NewWorkgroup(esURL string, wcfg WorkgroupConfig, pi ProducerInterface, logg
 	}
 
 	return wg
+}
+
+// SetChannelBufferSize define the channel buffer size
+// Configure it depending on your available memory
+func (w *Workgroup) SetChannelBufferSize(s int) {
+	w.channelBufferSize = s
 }
 
 // SetOnProduceCallback define the callback to call when a document is produced
@@ -174,7 +182,7 @@ func (w *Workgroup) Run() bool {
 
 	// Create the production wait group
 	wgProduce := &sync.WaitGroup{}
-	cDoc := make(chan *Document)
+	cDoc := make(chan *Document, w.channelBufferSize)
 
 	// Configure & start the producer
 	wgProduce.Add(1)
