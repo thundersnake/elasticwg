@@ -199,3 +199,9 @@ func TestWorkgroup_SetStartupCallback(t *testing.T) {
 
 	assert.NotNil(t, wg.onStartupCallback)
 }
+
+func TestWorkgroup_GetIndexName(t *testing.T) {
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
+	wg.cfg.IndexName = "unittest_fake_name_5dsfsdf"
+	assert.Equal(t, "unittest_fake_name_5dsfsdf", wg.GetIndexName())
+}
