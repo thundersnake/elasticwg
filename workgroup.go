@@ -11,17 +11,18 @@ import (
 
 // Workgroup the main object intended to be used to process data
 type Workgroup struct {
-	elasticURL        string
-	cfg               WorkgroupConfig
-	p                 *Producer
-	logger            Logger
-	FailureOnDupIndex bool
-	indexMapping      map[string]interface{}
-	onStartupCallback func() bool
-	onFailureCallback func()
-	onFinishCallback  func(bool)
-	onPushCallback    func(int)
-	stopChan          chan struct{}
+	elasticURL           string
+	cfg                  WorkgroupConfig
+	p                    *Producer
+	logger               Logger
+	FailureOnDupIndex    bool
+	indexMapping         map[string]interface{}
+	onStartupCallback    func() bool
+	onFailureCallback    func()
+	onFinishCallback     func(bool)
+	onPushCallback       func(int)
+	onVerifyStopCallback func() bool
+	stopChan             chan bool
 }
 
 // NewWorkgroup creates the workgroup and define the initialization parameters
@@ -55,7 +56,7 @@ func NewWorkgroup(esURL string, wcfg WorkgroupConfig, pi ProducerInterface, logg
 		elasticURL:        esURL,
 		logger:            logger,
 		FailureOnDupIndex: true,
-		stopChan:          make(chan struct{}),
+		stopChan:          make(chan bool),
 		p: &Producer{
 			pi:     pi,
 			logger: logger,
@@ -109,6 +110,11 @@ func (w *Workgroup) SetIndexMapping(mapping map[string]interface{}) {
 	w.indexMapping = mapping
 }
 
+// SetVerificationStopCallback set a function to call periodically to verify if we should stop the workgroup
+func (w *Workgroup) SetVerificationStopCallback(cb func() bool) {
+	w.onVerifyStopCallback = cb
+}
+
 // RequestStop launch a stopping order to all consumers & producers.
 // Producer stop depend on the implementation. ShouldStop must be called regularly.
 func (w *Workgroup) RequestStop() bool {
@@ -153,6 +159,18 @@ func (w *Workgroup) Run() bool {
 			}
 			return false
 		}
+	}
+
+	if w.onVerifyStopCallback != nil {
+		go func() {
+			for !w.p.ShouldStop() {
+				if w.onVerifyStopCallback() {
+					w.RequestStop()
+				}
+
+				time.Sleep(5 * time.Second)
+			}
+		}()
 	}
 
 	if w.p.ShouldStop() {

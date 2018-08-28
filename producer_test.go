@@ -123,7 +123,7 @@ func TestProducer_ShouldStop(t *testing.T) {
 	p := Producer{
 		pi:       &testProducerInterface{},
 		logger:   gTestLogger,
-		stopChan: make(chan struct{}),
+		stopChan: make(chan bool),
 	}
 
 	assert.False(t, p.ShouldStop())

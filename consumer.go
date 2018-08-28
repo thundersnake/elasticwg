@@ -13,7 +13,7 @@ type Consumer struct {
 	BulkSize       int
 	ElasticURL     string
 	onPushCallback func(int)
-	stopChan       chan struct{}
+	stopChan       chan bool
 	logger         Logger
 }
 

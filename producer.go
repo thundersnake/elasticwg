@@ -16,7 +16,7 @@ type Producer struct {
 	onProduceCallback            func(uint64)
 	onProductionFinishedCallback func(uint64)
 	logger                       Logger
-	stopChan                     chan struct{}
+	stopChan                     chan bool
 }
 
 func (p *Producer) setChannelAndWaitGroup(ch chan *Document, w *sync.WaitGroup) {

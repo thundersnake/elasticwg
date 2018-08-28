@@ -348,7 +348,7 @@ func TestConsumer_ShouldStop(t *testing.T) {
 		Index:      "test8",
 		DocType:    "Consumer_ConsumeMultiBulk",
 		BulkSize:   100,
-		stopChan:   make(chan struct{}),
+		stopChan:   make(chan bool),
 	}
 
 	assert.False(t, c.shouldStop())
