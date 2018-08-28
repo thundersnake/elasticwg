@@ -19,7 +19,7 @@ type Workgroup struct {
 	indexMapping      map[string]interface{}
 	onStartupCallback func() bool
 	onFailureCallback func()
-	onFinishCallback  func()
+	onFinishCallback  func(bool)
 	onPushCallback    func(int)
 }
 
@@ -55,7 +55,8 @@ func NewWorkgroup(esURL string, wcfg WorkgroupConfig, pi ProducerInterface, logg
 		logger:            logger,
 		FailureOnDupIndex: true,
 		p: &Producer{
-			pi: pi,
+			pi:     pi,
+			logger: logger,
 		},
 	}
 
@@ -89,7 +90,8 @@ func (w *Workgroup) SetFailureCallback(cb func()) {
 }
 
 // SetFinishCallback define the callback to call when the workgroup has successfully finished
-func (w *Workgroup) SetFinishCallback(cb func()) {
+// Boolean parameter define if workgroup was cancelled
+func (w *Workgroup) SetFinishCallback(cb func(bool)) {
 	w.onFinishCallback = cb
 }
 
@@ -218,19 +220,22 @@ func (w *Workgroup) Run() bool {
 	// Now finishing to consume
 	wgConsume.Wait()
 
-	// Re-set ES index standard configs
-	esConfig.Index.NumberOfReplicas = 1
-	esConfig.Index.RefreshInterval = "10s"
-	if _, err := client.IndexPutSettings(w.cfg.IndexName).BodyJson(esConfig).Do(context.Background()); err != nil {
-		w.logger.Errorf("Unable to put elasticsearch index settings.")
-		if w.onFailureCallback != nil {
-			w.onFailureCallback()
+	// If it's not manually stopped, set the ES index config properly
+	if !w.p.ShouldStop() {
+		// Re-set ES index standard configs
+		esConfig.Index.NumberOfReplicas = 1
+		esConfig.Index.RefreshInterval = "10s"
+		if _, err := client.IndexPutSettings(w.cfg.IndexName).BodyJson(esConfig).Do(context.Background()); err != nil {
+			w.logger.Errorf("Unable to put elasticsearch index settings.")
+			if w.onFailureCallback != nil {
+				w.onFailureCallback()
+			}
+			return false
 		}
-		return false
 	}
 
 	if w.onFinishCallback != nil {
-		w.onFinishCallback()
+		w.onFinishCallback(w.p.ShouldStop())
 	}
 
 	tEnd := time.Now()

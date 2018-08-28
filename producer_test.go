@@ -118,3 +118,22 @@ func TestProducer_ProduceWithFinal(t *testing.T) {
 	w.Wait()
 	assert.Equal(t, uint64(expectedCount), finalCount)
 }
+
+func TestProducer_ShouldStop(t *testing.T) {
+	p := Producer{
+		pi:     &testProducerInterface{},
+		logger: gTestLogger,
+	}
+
+	assert.False(t, p.ShouldStop())
+
+	shouldStop := false
+	p.shouldStopCallback = func() bool {
+		return shouldStop
+	}
+
+	assert.False(t, p.ShouldStop())
+
+	shouldStop = true
+	assert.True(t, p.ShouldStop())
+}

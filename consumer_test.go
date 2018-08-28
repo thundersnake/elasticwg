@@ -340,3 +340,25 @@ func TestConsumer_ConsumeMultiBulkLogBlock(t *testing.T) {
 	assert.True(t, c.Consume(ch, w))
 	assert.Equal(t, expectedConsume, consumeNumber)
 }
+
+func TestConsumer_ShouldStop(t *testing.T) {
+	c := Consumer{
+		logger:     gTestLogger,
+		ElasticURL: esURL,
+		Index:      "test8",
+		DocType:    "Consumer_ConsumeMultiBulk",
+		BulkSize:   100,
+	}
+
+	assert.False(t, c.shouldStop())
+
+	shouldStop := false
+	c.shouldStopCallback = func() bool {
+		return shouldStop
+	}
+
+	assert.False(t, c.shouldStop())
+
+	shouldStop = true
+	assert.True(t, c.shouldStop())
+}

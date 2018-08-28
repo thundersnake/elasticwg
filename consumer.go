@@ -8,12 +8,13 @@ import (
 
 // Consumer consumes produces data from the workgroup channel
 type Consumer struct {
-	Index          string
-	DocType        string
-	BulkSize       int
-	ElasticURL     string
-	onPushCallback func(int)
-	logger         Logger
+	Index              string
+	DocType            string
+	BulkSize           int
+	ElasticURL         string
+	onPushCallback     func(int)
+	shouldStopCallback func() bool
+	logger             Logger
 }
 
 func (c *Consumer) pushBulk(bulkRequest *elastic.BulkService) bool {
@@ -41,6 +42,15 @@ performBulk:
 	return true
 }
 
+func (c *Consumer) shouldStop() bool {
+	if c.shouldStopCallback != nil && c.shouldStopCallback() {
+		c.logger.Infof("Consumer stop requested, stopping consume.")
+		return true
+	}
+
+	return false
+}
+
 // Consume consume documents inside a bulk request and send it to Elasticsearch
 func (c *Consumer) Consume(cDoc chan *Document, wg *sync.WaitGroup) bool {
 	defer wg.Done()
@@ -50,12 +60,21 @@ func (c *Consumer) Consume(cDoc chan *Document, wg *sync.WaitGroup) bool {
 		return false
 	}
 
+	if c.shouldStop() {
+		return false
+	}
+
 	client, err := elastic.NewClient(
 		elastic.SetSniff(false),
 		elastic.SetURL(c.ElasticURL),
 	)
+
 	if err != nil {
 		c.logger.Errorf("%v", err)
+		return false
+	}
+
+	if c.shouldStop() {
 		return false
 	}
 
@@ -63,6 +82,10 @@ func (c *Consumer) Consume(cDoc chan *Document, wg *sync.WaitGroup) bool {
 	bulkRequest := client.Bulk()
 	for doc := range cDoc {
 		n++
+
+		if c.shouldStop() {
+			return false
+		}
 
 		req := elastic.NewBulkIndexRequest().
 			Index(c.Index).
@@ -80,6 +103,10 @@ func (c *Consumer) Consume(cDoc chan *Document, wg *sync.WaitGroup) bool {
 				c.logger.Infof("Pushed %d docs to elasticsearch", n)
 			}
 		}
+	}
+
+	if c.shouldStop() {
+		return false
 	}
 
 	// Flush remaining docs

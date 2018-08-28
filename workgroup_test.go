@@ -139,7 +139,7 @@ func TestWorkgroup_SetFailureCallback(t *testing.T) {
 
 func TestWorkgroup_SetFinishCallback(t *testing.T) {
 	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
-	wg.SetFinishCallback(func() {
+	wg.SetFinishCallback(func(bool) {
 		gTestLogger.Info("test")
 	})
 
