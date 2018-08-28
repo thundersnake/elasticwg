@@ -15,8 +15,8 @@ type Producer struct {
 	counter                      uint64
 	onProduceCallback            func(uint64)
 	onProductionFinishedCallback func(uint64)
-	shouldStopCallback           func() bool
 	logger                       Logger
+	stopChan                     chan struct{}
 }
 
 func (p *Producer) setChannelAndWaitGroup(ch chan *Document, w *sync.WaitGroup) {
@@ -36,12 +36,13 @@ func (p *Producer) Push(doc *Document) {
 // ShouldStop call the shouldStopCallback function if defined
 // It must be called by the implementation to stop the producer gracefully when stop is requested
 func (p *Producer) ShouldStop() bool {
-	if p.shouldStopCallback != nil && p.shouldStopCallback() {
+	select {
+	default:
+		return false
+	case <-p.stopChan:
 		p.logger.Infof("Producer stop requested, stopping production.")
 		return true
 	}
-
-	return false
 }
 
 func (p *Producer) produce() {

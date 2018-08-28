@@ -21,6 +21,7 @@ type Workgroup struct {
 	onFailureCallback func()
 	onFinishCallback  func(bool)
 	onPushCallback    func(int)
+	stopChan          chan struct{}
 }
 
 // NewWorkgroup creates the workgroup and define the initialization parameters
@@ -54,11 +55,14 @@ func NewWorkgroup(esURL string, wcfg WorkgroupConfig, pi ProducerInterface, logg
 		elasticURL:        esURL,
 		logger:            logger,
 		FailureOnDupIndex: true,
+		stopChan:          make(chan struct{}),
 		p: &Producer{
 			pi:     pi,
 			logger: logger,
 		},
 	}
+
+	wg.p.stopChan = wg.stopChan
 
 	if len(wg.cfg.MappingFile) > 0 && !wg.SetIndexMappingFromFile(wg.cfg.MappingFile) {
 		return nil
@@ -105,6 +109,18 @@ func (w *Workgroup) SetIndexMapping(mapping map[string]interface{}) {
 	w.indexMapping = mapping
 }
 
+// RequestStop launch a stopping order to all consumers & producers.
+// Producer stop depend on the implementation. ShouldStop must be called regularly.
+func (w *Workgroup) RequestStop() bool {
+	select {
+	case <-w.stopChan:
+		close(w.stopChan)
+		return true
+	default:
+		return false
+	}
+}
+
 // SetIndexMappingFromFile read file at path and load indexMapping to apply
 // just after index creation
 func (w *Workgroup) SetIndexMappingFromFile(path string) bool {
@@ -139,6 +155,10 @@ func (w *Workgroup) Run() bool {
 		}
 	}
 
+	if w.p.ShouldStop() {
+		return false
+	}
+
 	client, err := elastic.NewClient(
 		elastic.SetSniff(false),
 		elastic.SetURL(w.elasticURL),
@@ -148,6 +168,10 @@ func (w *Workgroup) Run() bool {
 		if w.onFailureCallback != nil {
 			w.onFailureCallback()
 		}
+		return false
+	}
+
+	if w.p.ShouldStop() {
 		return false
 	}
 
@@ -165,6 +189,10 @@ func (w *Workgroup) Run() bool {
 		return false
 	}
 
+	if w.p.ShouldStop() {
+		return false
+	}
+
 	if w.indexMapping != nil {
 		if _, err := client.PutMapping().Index(w.cfg.IndexName).Type(w.cfg.DocType).BodyJson(w.indexMapping).
 			Do(context.Background()); err != nil {
@@ -176,11 +204,19 @@ func (w *Workgroup) Run() bool {
 		}
 	}
 
+	if w.p.ShouldStop() {
+		return false
+	}
+
 	if _, err := client.IndexPutSettings(w.cfg.IndexName).BodyJson(esConfig).Do(context.Background()); err != nil {
 		w.logger.Errorf("Unable to put elasticsearch index settings on '%s': %v", w.cfg.IndexName, err)
 		if w.onFailureCallback != nil {
 			w.onFailureCallback()
 		}
+		return false
+	}
+
+	if w.p.ShouldStop() {
 		return false
 	}
 
@@ -193,6 +229,10 @@ func (w *Workgroup) Run() bool {
 	w.p.setChannelAndWaitGroup(cDoc, wgProduce)
 	go w.p.produce()
 
+	if w.p.ShouldStop() {
+		return false
+	}
+
 	// Create the consuming wait group & start consuming
 	wgConsume := &sync.WaitGroup{}
 	for i := 0; i < w.cfg.NumConsumers; i++ {
@@ -203,6 +243,7 @@ func (w *Workgroup) Run() bool {
 			DocType:    w.cfg.DocType,
 			Index:      w.cfg.IndexName,
 			logger:     w.logger,
+			stopChan:   w.stopChan,
 		}
 
 		// Set the consumer callback function if defined on the workgroup
@@ -234,6 +275,7 @@ func (w *Workgroup) Run() bool {
 		}
 	}
 
+	// Send the finish callback with the manual stop flag
 	if w.onFinishCallback != nil {
 		w.onFinishCallback(w.p.ShouldStop())
 	}

@@ -8,13 +8,13 @@ import (
 
 // Consumer consumes produces data from the workgroup channel
 type Consumer struct {
-	Index              string
-	DocType            string
-	BulkSize           int
-	ElasticURL         string
-	onPushCallback     func(int)
-	shouldStopCallback func() bool
-	logger             Logger
+	Index          string
+	DocType        string
+	BulkSize       int
+	ElasticURL     string
+	onPushCallback func(int)
+	stopChan       chan struct{}
+	logger         Logger
 }
 
 func (c *Consumer) pushBulk(bulkRequest *elastic.BulkService) bool {
@@ -43,12 +43,13 @@ performBulk:
 }
 
 func (c *Consumer) shouldStop() bool {
-	if c.shouldStopCallback != nil && c.shouldStopCallback() {
+	select {
+	default:
+		return false
+	case <-c.stopChan:
 		c.logger.Infof("Consumer stop requested, stopping consume.")
 		return true
 	}
-
-	return false
 }
 
 // Consume consume documents inside a bulk request and send it to Elasticsearch

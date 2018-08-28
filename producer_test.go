@@ -121,19 +121,13 @@ func TestProducer_ProduceWithFinal(t *testing.T) {
 
 func TestProducer_ShouldStop(t *testing.T) {
 	p := Producer{
-		pi:     &testProducerInterface{},
-		logger: gTestLogger,
+		pi:       &testProducerInterface{},
+		logger:   gTestLogger,
+		stopChan: make(chan struct{}),
 	}
 
 	assert.False(t, p.ShouldStop())
 
-	shouldStop := false
-	p.shouldStopCallback = func() bool {
-		return shouldStop
-	}
-
-	assert.False(t, p.ShouldStop())
-
-	shouldStop = true
+	close(p.stopChan)
 	assert.True(t, p.ShouldStop())
 }
