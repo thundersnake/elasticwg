@@ -194,6 +194,10 @@ func (w *Workgroup) Run() bool {
 		}()
 	}
 
+	// If we leave the Run function we should notify everybody that they should stop too.
+	// This is essentially for the onVerifyStopCallback loop
+	defer w.RequestStop()
+
 	if w.ShouldStop() {
 		return false
 	}
