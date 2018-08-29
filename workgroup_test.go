@@ -184,11 +184,11 @@ func TestWorkgroup_SetOnProductionFinishedCallback(t *testing.T) {
 
 func TestWorkgroup_SetVerificationStopCallback(t *testing.T) {
 	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
-	wg.SetVerificationStopCallback(func() bool {
+	wg.SetStopCheckCallback(func() bool {
 		return true
 	})
 
-	assert.NotNil(t, wg.onVerifyStopCallback)
+	assert.NotNil(t, wg.onCheckStopCallback)
 }
 
 func TestWorkgroup_RequestStop(t *testing.T) {

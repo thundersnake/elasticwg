@@ -12,18 +12,18 @@ import (
 
 // Workgroup the main object intended to be used to process data
 type Workgroup struct {
-	elasticURL           string
-	cfg                  WorkgroupConfig
-	p                    *Producer
-	logger               Logger
-	FailureOnDupIndex    bool
-	indexMapping         map[string]interface{}
-	onStartupCallback    func() bool
-	onFailureCallback    func()
-	onFinishCallback     func(bool)
-	onPushCallback       func(int)
-	onVerifyStopCallback func() bool
-	shouldStopFlag       *abool.AtomicBool
+	elasticURL          string
+	cfg                 WorkgroupConfig
+	p                   *Producer
+	logger              Logger
+	FailureOnDupIndex   bool
+	indexMapping        map[string]interface{}
+	onStartupCallback   func() bool
+	onFailureCallback   func()
+	onFinishCallback    func(bool)
+	onPushCallback      func(int)
+	onCheckStopCallback func() bool
+	shouldStopFlag      *abool.AtomicBool
 }
 
 // NewWorkgroup creates the workgroup and define the initialization parameters
@@ -112,9 +112,9 @@ func (w *Workgroup) SetIndexMapping(mapping map[string]interface{}) {
 	w.indexMapping = mapping
 }
 
-// SetVerificationStopCallback set a function to call periodically to verify if we should stop the workgroup
-func (w *Workgroup) SetVerificationStopCallback(cb func() bool) {
-	w.onVerifyStopCallback = cb
+// SetStopCheckCallback set a function to call periodically to verify if we should stop the workgroup
+func (w *Workgroup) SetStopCheckCallback(cb func() bool) {
+	w.onCheckStopCallback = cb
 }
 
 // RequestStop launch a stopping order to all consumers & producers.
@@ -182,10 +182,10 @@ func (w *Workgroup) Run() bool {
 		}
 	}
 
-	if w.onVerifyStopCallback != nil {
+	if w.onCheckStopCallback != nil {
 		go func() {
 			for !w.ShouldStop() {
-				if w.onVerifyStopCallback() {
+				if w.onCheckStopCallback() {
 					w.RequestStop()
 				}
 
@@ -195,7 +195,7 @@ func (w *Workgroup) Run() bool {
 	}
 
 	// If we leave the Run function we should notify everybody that they should stop too.
-	// This is essentially for the onVerifyStopCallback loop
+	// This is essentially for the onCheckStopCallback loop
 	defer w.RequestStop()
 
 	if w.ShouldStop() {
