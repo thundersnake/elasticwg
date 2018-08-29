@@ -3,6 +3,7 @@ package elasticwg
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/tevino/abool"
 	"strconv"
 	"sync"
 	"testing"
@@ -121,13 +122,12 @@ func TestProducer_ProduceWithFinal(t *testing.T) {
 
 func TestProducer_ShouldStop(t *testing.T) {
 	p := Producer{
-		pi:       &testProducerInterface{},
-		logger:   gTestLogger,
-		stopChan: make(chan bool),
+		pi:             &testProducerInterface{},
+		logger:         gTestLogger,
+		shouldStopFlag: abool.New(),
 	}
 
 	assert.False(t, p.ShouldStop())
-
-	close(p.stopChan)
+	p.shouldStopFlag.Set()
 	assert.True(t, p.ShouldStop())
 }

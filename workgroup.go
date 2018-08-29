@@ -3,6 +3,7 @@ package elasticwg
 import (
 	"context"
 	"encoding/json"
+	"github.com/tevino/abool"
 	"gopkg.in/olivere/elastic.v5"
 	"io/ioutil"
 	"sync"
@@ -22,7 +23,7 @@ type Workgroup struct {
 	onFinishCallback     func(bool)
 	onPushCallback       func(int)
 	onVerifyStopCallback func() bool
-	stopChan             chan bool
+	shouldStopFlag       *abool.AtomicBool
 }
 
 // NewWorkgroup creates the workgroup and define the initialization parameters
@@ -56,14 +57,15 @@ func NewWorkgroup(esURL string, wcfg WorkgroupConfig, pi ProducerInterface, logg
 		elasticURL:        esURL,
 		logger:            logger,
 		FailureOnDupIndex: true,
-		stopChan:          make(chan bool),
+		shouldStopFlag:    abool.New(),
 		p: &Producer{
 			pi:     pi,
 			logger: logger,
 		},
 	}
 
-	wg.p.stopChan = wg.stopChan
+	// Share the shouldStopFlag with the producer
+	wg.p.shouldStopFlag = wg.shouldStopFlag
 
 	if len(wg.cfg.MappingFile) > 0 && !wg.SetIndexMappingFromFile(wg.cfg.MappingFile) {
 		return nil
@@ -117,14 +119,13 @@ func (w *Workgroup) SetVerificationStopCallback(cb func() bool) {
 
 // RequestStop launch a stopping order to all consumers & producers.
 // Producer stop depend on the implementation. ShouldStop must be called regularly.
-func (w *Workgroup) RequestStop() bool {
-	select {
-	case <-w.stopChan:
-		close(w.stopChan)
-		return true
-	default:
-		return false
-	}
+func (w *Workgroup) RequestStop() {
+	w.shouldStopFlag.Set()
+}
+
+// ShouldStop returns true if we should stop the workgroup
+func (w *Workgroup) ShouldStop() bool {
+	return w.shouldStopFlag.IsSet()
 }
 
 // SetIndexMappingFromFile read file at path and load indexMapping to apply
@@ -149,6 +150,26 @@ func (w *Workgroup) GetIndexName() string {
 	return w.cfg.IndexName
 }
 
+func (w *Workgroup) spawnConsumers(wg *sync.WaitGroup, ch chan *Document) {
+	for i := 0; i < w.cfg.NumConsumers; i++ {
+		wg.Add(1)
+		c := newConsumer(
+			w.elasticURL,
+			w.cfg.IndexName,
+			w.cfg.DocType,
+			w.cfg.BulkSize,
+			w.logger,
+			w.shouldStopFlag)
+
+		// Set the consumer callback function if defined on the workgroup
+		if w.onPushCallback != nil {
+			c.onPushCallback = w.onPushCallback
+		}
+
+		go c.Consume(ch, wg)
+	}
+}
+
 // Run make the workgroup run
 func (w *Workgroup) Run() bool {
 	if w.onStartupCallback != nil {
@@ -163,7 +184,7 @@ func (w *Workgroup) Run() bool {
 
 	if w.onVerifyStopCallback != nil {
 		go func() {
-			for !w.p.ShouldStop() {
+			for !w.ShouldStop() {
 				if w.onVerifyStopCallback() {
 					w.RequestStop()
 				}
@@ -173,7 +194,7 @@ func (w *Workgroup) Run() bool {
 		}()
 	}
 
-	if w.p.ShouldStop() {
+	if w.ShouldStop() {
 		return false
 	}
 
@@ -189,7 +210,7 @@ func (w *Workgroup) Run() bool {
 		return false
 	}
 
-	if w.p.ShouldStop() {
+	if w.ShouldStop() {
 		return false
 	}
 
@@ -207,7 +228,7 @@ func (w *Workgroup) Run() bool {
 		return false
 	}
 
-	if w.p.ShouldStop() {
+	if w.ShouldStop() {
 		return false
 	}
 
@@ -222,7 +243,7 @@ func (w *Workgroup) Run() bool {
 		}
 	}
 
-	if w.p.ShouldStop() {
+	if w.ShouldStop() {
 		return false
 	}
 
@@ -234,7 +255,7 @@ func (w *Workgroup) Run() bool {
 		return false
 	}
 
-	if w.p.ShouldStop() {
+	if w.ShouldStop() {
 		return false
 	}
 
@@ -247,30 +268,13 @@ func (w *Workgroup) Run() bool {
 	w.p.setChannelAndWaitGroup(cDoc, wgProduce)
 	go w.p.produce()
 
-	if w.p.ShouldStop() {
+	if w.ShouldStop() {
 		return false
 	}
 
 	// Create the consuming wait group & start consuming
 	wgConsume := &sync.WaitGroup{}
-	for i := 0; i < w.cfg.NumConsumers; i++ {
-		wgConsume.Add(1)
-		c := Consumer{
-			BulkSize:   w.cfg.BulkSize,
-			ElasticURL: w.elasticURL,
-			DocType:    w.cfg.DocType,
-			Index:      w.cfg.IndexName,
-			logger:     w.logger,
-			stopChan:   w.stopChan,
-		}
-
-		// Set the consumer callback function if defined on the workgroup
-		if w.onPushCallback != nil {
-			c.onPushCallback = w.onPushCallback
-		}
-
-		go c.Consume(cDoc, wgConsume)
-	}
+	w.spawnConsumers(wgConsume, cDoc)
 
 	wgProduce.Wait()
 	// Production finished, closing the channel
@@ -280,7 +284,7 @@ func (w *Workgroup) Run() bool {
 	wgConsume.Wait()
 
 	// If it's not manually stopped, set the ES index config properly
-	if !w.p.ShouldStop() {
+	if !w.ShouldStop() {
 		// Re-set ES index standard configs
 		esConfig.Index.NumberOfReplicas = 1
 		esConfig.Index.RefreshInterval = "10s"
@@ -295,7 +299,7 @@ func (w *Workgroup) Run() bool {
 
 	// Send the finish callback with the manual stop flag
 	if w.onFinishCallback != nil {
-		w.onFinishCallback(w.p.ShouldStop())
+		w.onFinishCallback(w.ShouldStop())
 	}
 
 	tEnd := time.Now()

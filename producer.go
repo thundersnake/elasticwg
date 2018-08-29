@@ -1,6 +1,9 @@
 package elasticwg
 
-import "sync"
+import (
+	"github.com/tevino/abool"
+	"sync"
+)
 
 // ProducerInterface a generic interface which provides documents to be pushed to the consumers
 type ProducerInterface interface {
@@ -16,7 +19,7 @@ type Producer struct {
 	onProduceCallback            func(uint64)
 	onProductionFinishedCallback func(uint64)
 	logger                       Logger
-	stopChan                     chan bool
+	shouldStopFlag               *abool.AtomicBool
 }
 
 func (p *Producer) setChannelAndWaitGroup(ch chan *Document, w *sync.WaitGroup) {
@@ -36,13 +39,7 @@ func (p *Producer) Push(doc *Document) {
 // ShouldStop call the shouldStopCallback function if defined
 // It must be called by the implementation to stop the producer gracefully when stop is requested
 func (p *Producer) ShouldStop() bool {
-	select {
-	default:
-		return false
-	case <-p.stopChan:
-		p.logger.Infof("Producer stop requested, stopping production.")
-		return true
-	}
+	return p.shouldStopFlag.IsSet()
 }
 
 func (p *Producer) produce() {

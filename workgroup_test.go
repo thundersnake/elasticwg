@@ -192,8 +192,20 @@ func TestWorkgroup_SetVerificationStopCallback(t *testing.T) {
 
 func TestWorkgroup_RequestStop(t *testing.T) {
 	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
-	assert.NotNil(t, wg.stopChan)
-	assert.False(t, wg.RequestStop())
+	assert.False(t, wg.shouldStopFlag.IsSet())
+
+	wg.RequestStop()
+
+	assert.True(t, wg.shouldStopFlag.IsSet())
+}
+
+func TestWorkgroup_ShouldStop(t *testing.T) {
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
+	assert.False(t, wg.ShouldStop())
+
+	wg.shouldStopFlag.Set()
+
+	assert.True(t, wg.ShouldStop())
 }
 
 func TestWorkgroup_SetOnPushCallback(t *testing.T) {

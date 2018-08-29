@@ -3,6 +3,7 @@ package elasticwg
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/tevino/abool"
 	"gopkg.in/olivere/elastic.v5"
 	"strconv"
 	"sync"
@@ -343,16 +344,17 @@ func TestConsumer_ConsumeMultiBulkLogBlock(t *testing.T) {
 
 func TestConsumer_ShouldStop(t *testing.T) {
 	c := Consumer{
-		logger:     gTestLogger,
-		ElasticURL: esURL,
-		Index:      "test8",
-		DocType:    "Consumer_ConsumeMultiBulk",
-		BulkSize:   100,
-		stopChan:   make(chan bool),
+		logger:         gTestLogger,
+		ElasticURL:     esURL,
+		Index:          "test8",
+		DocType:        "Consumer_ConsumeMultiBulk",
+		BulkSize:       100,
+		shouldStopFlag: abool.New(),
 	}
 
 	assert.False(t, c.shouldStop())
 
-	close(c.stopChan)
+	c.shouldStopFlag.Set()
+
 	assert.True(t, c.shouldStop())
 }

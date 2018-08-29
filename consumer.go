@@ -2,6 +2,7 @@ package elasticwg
 
 import (
 	"context"
+	"github.com/tevino/abool"
 	"gopkg.in/olivere/elastic.v5"
 	"sync"
 )
@@ -13,8 +14,21 @@ type Consumer struct {
 	BulkSize       int
 	ElasticURL     string
 	onPushCallback func(int)
-	stopChan       chan bool
+	shouldStopFlag *abool.AtomicBool
 	logger         Logger
+}
+
+// newConsumer creates a consumer object
+func newConsumer(elasticURL string, index string, docType string, bulkSize int, logger Logger,
+	ssf *abool.AtomicBool) *Consumer {
+	return &Consumer{
+		BulkSize:       bulkSize,
+		ElasticURL:     elasticURL,
+		DocType:        docType,
+		Index:          index,
+		logger:         logger,
+		shouldStopFlag: ssf,
+	}
 }
 
 func (c *Consumer) pushBulk(bulkRequest *elastic.BulkService) bool {
@@ -43,13 +57,7 @@ performBulk:
 }
 
 func (c *Consumer) shouldStop() bool {
-	select {
-	default:
-		return false
-	case <-c.stopChan:
-		c.logger.Infof("Consumer stop requested, stopping consume.")
-		return true
-	}
+	return c.shouldStopFlag.IsSet()
 }
 
 // Consume consume documents inside a bulk request and send it to Elasticsearch
