@@ -198,6 +198,7 @@ func TestWorkgroup_RequestStop(t *testing.T) {
 	wg.RequestStop()
 
 	assert.True(t, wg.shouldStopFlag.IsSet())
+	assert.True(t, wg.p.shouldStopFlag.IsSet())
 }
 
 func TestWorkgroup_ShouldStop(t *testing.T) {
