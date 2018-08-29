@@ -2,6 +2,7 @@ package elasticwg
 
 import (
 	"github.com/stretchr/testify/assert"
+	"sync"
 	"testing"
 )
 
@@ -231,4 +232,14 @@ func TestWorkgroup_GetIndexName(t *testing.T) {
 	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
 	wg.cfg.IndexName = "unittest_fake_name_5dsfsdf"
 	assert.Equal(t, "unittest_fake_name_5dsfsdf", wg.GetIndexName())
+}
+
+func TestWorkgroup_spawnConsumer(t *testing.T) {
+	wg := NewWorkgroup(esURL, testCfg, &testProducer{}, gTestLogger)
+	ch := make(chan *Document)
+	swg := &sync.WaitGroup{}
+	wg.spawnConsumers(swg, ch)
+
+	close(ch)
+	swg.Wait()
 }
